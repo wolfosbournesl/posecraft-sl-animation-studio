@@ -2,6 +2,8 @@
 
 Editor visual para criar poses e anima??es humanoides, organizar quadros-chave e exportar arquivos para testar no Second Life.
 
+**Abrir o editor:** https://wolfosbournesl.github.io/posecraft-sl-animation-studio/
+
 ## Recursos
 
 - Avatares masculinos e femininos com esqueleto articulado, 49 controles e 30 articula??es dos dedos.
