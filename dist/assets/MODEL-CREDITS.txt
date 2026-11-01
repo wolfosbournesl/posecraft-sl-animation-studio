@@ -1,0 +1,6 @@
+Character models: Quaternius Universal Base Characters (Superhero Male and Female).
+Official pack: https://quaternius.com/packs/universalbasecharacters.html
+Official free download page: https://quaternius.itch.io/universal-base-characters
+License: CC0 1.0 Universal (Public Domain Dedication), https://creativecommons.org/publicdomain/zero/1.0/
+Bundled files: posecraft-human-male.fbx and posecraft-human-female.fbx. The app loads the FBX skeleton and skin weights with Three.js FBXLoader, applies its neutral material, and authors its own pose animation data.
+Original author: Quaternius. The files came from a public mirror of the free Standard pack.
