@@ -1,42 +1,38 @@
-# Posecraft ? Editor de poses e anima??es para Second Life
+# Posecraft - Editor de poses e animações para Second Life
 
-Editor visual para criar poses e anima??es humanoides, organizar quadros-chave e exportar arquivos para testar no Second Life.
+Editor web para criar poses, importar movimento de vídeos e exportar animações para revisar no viewer.
 
 **Abrir o editor:** https://wolfosbournesl.github.io/posecraft-sl-animation-studio/
 
 ## Recursos
 
-- Avatares masculinos e femininos com esqueleto articulado, 49 controles e 30 articula??es dos dedos.
-- Ferramentas de mover e girar, campos num?ricos e limites de deslocamento para manter as juntas conectadas.
-- Timeline com quadros-chave, reprodu??o, FPS e dura??o.
-- Presets de m?os e p?s, poses de exemplo e m?ltiplos avatares na cena.
-- Interface em portugu?s, ingl?s e espanhol.
-- Importa??o local de anima??es MMD no formato `.vmd`.
-- Exporta??o de anima??es `.bvh`, `.anim` e projetos Posecraft em JSON.
+- Avatares masculino e feminino rigados, com 49 controles e articulações dos dedos.
+- Ferramentas de mover e girar, campos numéricos e presets de mãos e pés.
+- Timeline com quadros-chave, reprodução, FPS, duração e biblioteca local de animações.
+- Interface em português, inglês e espanhol.
+- Importa animações MMD `.vmd` carregadas localmente.
+- Exporta `.bvh`, `.anim` e JSON do projeto.
+- Captura movimento de um vídeo local com estimativa de pose do MediaPipe.
 
-## Usar no navegador
+## Capturar movimento de vídeo
 
-A versão pública ? publicada pelo GitHub Pages a partir da pasta `dist/`. Abra o endere?o do Pages e use o editor diretamente no navegador. A aplica??o salva rascunhos no armazenamento local do navegador.
+1. Abra **Capturar movimento** e selecione um vídeo MP4, WebM ou MOV compatível com o navegador.
+2. Escolha a amostragem e a duração; o editor analisa até 30 segundos do vídeo.
+3. Revise o esqueleto sobre o vídeo e aplique a sequência à timeline. A aplicação substitui os quadros atuais.
+4. Ajuste os quadros e exporte para o formato desejado.
+
+O vídeo é processado no navegador e não é enviado ao servidor. Na primeira captura, o navegador baixa o modelo de pose e os arquivos de inferência do MediaPipe; é necessária conexão à internet. O tempo de processamento depende do dispositivo, da duração e da amostragem.
+
+Para vídeos do YouTube, TikTok ou outros sites, selecione um arquivo obtido por um método permitido e que você tenha direito de usar. O editor não processa diretamente páginas, links de streaming ou baixa vídeos dessas plataformas.
+
+A estimativa funciona melhor com uma pessoa de corpo inteiro, câmera estável e boa iluminação. Ela aproxima a pose 3D a partir de um vídeo 2D: não recupera profundidade real, dedos ou movimentos ocultos, e movimento de câmera pode afetar o deslocamento do quadril. Confira e ajuste a animação antes de exportar.
 
 ## Executar localmente
 
-1. Clone este reposit?rio.
-2. Abra um terminal na pasta do projeto.
-3. Execute `python -m http.server 4173`.
-4. Acesse `http://127.0.0.1:4173/dist/`.
+1. Clone este repositório.
+2. Na pasta do projeto, execute `python -m http.server 4173`.
+3. Acesse `http://127.0.0.1:4173/dist/`.
 
-A cena 3D e o parser MMD carregam depend?ncias do Three.js por CDN; ? necess?ria conex?o ? internet.
+## Licenças
 
-## Modelos e licen?as
-
-Os avatares FBX v?m do pacote Universal Base Characters, de Quaternius, distribu?do sob CC0. A licen?a e os cr?ditos est?o em `dist/assets/QUATERNIUS-LICENSE.txt` e `dist/assets/MODEL-CREDITS.txt`.
-
-## Compatibilidade
-
-A exportação gera arquivos para avalia??o no viewer. O carregamento no editor n?o garante compatibilidade final de cada anima??o no Second Life; confira o resultado no viewer antes de usar ou enviar. O formato `.anim` ? o formato bin?rio interno do viewer.
-
-Para importar MMD, obtenha um arquivo `.vmd` de uma fonte que permita seu uso e selecione-o localmente. O editor n?o busca nem baixa anima??es a partir de sites.
-
-## Publicação
-
-Cada push para `main` publica automaticamente `dist/` no GitHub Pages usando GitHub Actions. O workflow est? em `.github/workflows/pages.yml`.
+Consulte `dist/assets/QUATERNIUS-LICENSE.txt` e `dist/assets/MODEL-CREDITS.txt` para os créditos e termos dos avatares. A biblioteca MediaPipe Tasks Vision é carregada do jsDelivr; o modelo de pose é servido pelo Google MediaPipe Models.

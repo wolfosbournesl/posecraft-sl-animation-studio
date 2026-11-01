@@ -10,7 +10,7 @@
 </style>
 <style>.actorList,.savedAnimationList{display:grid;gap:6px;margin-top:8px;max-height:210px;overflow:auto}.actorRow,.savedAnimationRow{display:flex;gap:5px;align-items:stretch}.actorCard,.savedAnimationLoad{flex:1;min-width:0;text-align:left;background:#20242d;border:1px solid #303540;border-radius:8px;padding:8px;color:var(--text);cursor:pointer}.actorCard.active{border-color:var(--accent);background:#252333}.actorCard small,.savedAnimationLoad small{display:block;color:var(--muted);font-size:10px;margin-top:3px}.miniAction{background:#20242d;border:1px solid #303540;border-radius:8px;color:var(--muted);padding:0 8px;cursor:pointer}.secondary{width:100%;background:#20242d;border:1px solid #424858;border-radius:8px;padding:8px;color:var(--text);cursor:pointer}.fieldHint{font-size:10px;color:var(--muted);line-height:1.4;margin-top:-5px}.sceneTag{display:inline-flex;padding:3px 6px;border-radius:999px;background:#282b36;color:var(--muted);font-size:10px}@media(max-width:760px){.actorList,.savedAnimationList{max-height:none}}</style></head>
 <body>
-<header class="top"><div class="brand"><div class="brandMark">P</div>posecraft</div><div class="project"><small>PROJETO ATUAL</small><span id="projectName">Nova criação</span></div><div class="spacer"></div><div class="autosave"><i class="dot"></i><span id="saveState">Salvo neste navegador</span></div><label class="languageLabel" for="languageSelect">Idioma</label><select class="languageSelect" id="languageSelect" aria-label="Idioma"><option value="pt">PT</option><option value="en">EN</option><option value="es">ES</option></select><button class="quiet" id="openProject">Abrir projeto</button><input id="projectFile" type="file" accept=".json,.posecraft.json,application/json" hidden><button class="quiet" id="importMmdBtn">Importar MMD</button><input id="mmdFile" type="file" accept=".vmd,application/octet-stream" hidden><button class="quiet" id="newProject">Novo projeto</button><button class="primary" id="exportBtn">Exportar</button></header>
+<header class="top"><div class="brand"><div class="brandMark">P</div>posecraft</div><div class="project"><small>PROJETO ATUAL</small><span id="projectName">Nova criação</span></div><div class="spacer"></div><div class="autosave"><i class="dot"></i><span id="saveState">Salvo neste navegador</span></div><label class="languageLabel" for="languageSelect">Idioma</label><select class="languageSelect" id="languageSelect" aria-label="Idioma"><option value="pt">PT</option><option value="en">EN</option><option value="es">ES</option></select><button class="quiet" id="openProject">Abrir projeto</button><input id="projectFile" type="file" accept=".json,.posecraft.json,application/json" hidden><button class="quiet" id="importMmdBtn">Importar MMD</button><button class="quiet" id="captureMotionBtn" disabled>Capturar movimento</button><input id="mmdFile" type="file" accept=".vmd,application/octet-stream" hidden><button class="quiet" id="newProject">Novo projeto</button><button class="primary" id="exportBtn">Exportar</button></header>
 <main class="main">
 <aside class="left">
  <div class="modeSwitch"><button id="poseMode" class="active">Pose</button><button id="animMode">Animação</button></div>
@@ -157,6 +157,84 @@ document.querySelector('#genderSelect').onchange=e=>{activeActor.gender=e.target
 
 // Restore the last local draft after the first render has initialized the rig.
 try{const saved=JSON.parse(localStorage.getItem('posecraft-last-project')||'null');if(saved){document.querySelector('#nameInput').value=saved.name||'Minha animação';document.querySelector('#projectName').textContent=saved.name||'Nova criação';if(!restoreScene(saved)){duration=saved.duration||duration;fps=saved.fps||fps;keys=(saved.keys||keys).map(k=>({t:k.t,data:upgradeData(k.data)}))}renderKeys();setTime(0);refreshActorList()}}catch{}
+translations.en['Capturar movimento']='Capture motion';translations.es['Capturar movimento']='Capturar movimiento';
 setLanguage(appLanguage);
+
+function applyCapturedMotion(capture){
+ if(!humanModelsReady)throw new Error('avatar-model-not-ready');
+ const actor=activeActor,frameList=capture.frames||[];
+ if(frameList.length<2)throw new Error('not-enough-frames');
+ applyActorPose(actor,snapshotZero());actor.avatar.updateMatrixWorld(true);
+ const worldPosition={},worldQuaternion={},parentQuaternion={},restDirection={};
+ for(const d of defs){const id=d[0],bone=actor.rig[id];worldPosition[id]=bone.getWorldPosition(new THREE.Vector3());worldQuaternion[id]=bone.getWorldQuaternion(new THREE.Quaternion());parentQuaternion[id]=bone.parent.getWorldQuaternion(new THREE.Quaternion());
+  let childDef=defs.find(child=>child[2]===id),child=childDef?actor.rig[childDef[0]]:bone.children.find(object=>object.isBone);
+  if(id==='head'){restDirection[id]=new THREE.Vector3(0,0,1).applyQuaternion(worldQuaternion[id]).normalize()}
+  else if(child)restDirection[id]=child.getWorldPosition(new THREE.Vector3()).sub(worldPosition[id]).normalize();
+ }
+ const worldPoint=(landmarks,index)=>{const p=landmarks?.[index];if(!p||p.visibility<.15)return null;return new THREE.Vector3((capture.mirror?1:-1)*p.x,p.y,-p.z)};
+ const midpoint=(a,b)=>a&&b?a.clone().add(b).multiplyScalar(.5):a||b;
+ const clipDuration=Math.min(60,Math.max(.2,Number(capture.duration)||2));
+ const firstLandmarks=frameList[0].world,firstImage=frameList[0].image;
+ const firstPelvis=midpoint(worldPoint(firstLandmarks,23),worldPoint(firstLandmarks,24));
+ const firstShoulders=midpoint(worldPoint(firstLandmarks,11),worldPoint(firstLandmarks,12));
+ const firstHipImage=midpoint(firstImage?.[23],firstImage?.[24]);
+ const shoulderImage=midpoint(firstImage?.[11],firstImage?.[12]);
+ const imageBodyHeight=Math.abs((firstHipImage?.y??.5)-(shoulderImage?.y??.35));
+ const worldBodyHeight=firstPelvis&&firstShoulders?firstPelvis.distanceTo(firstShoulders):1;
+ const motionScale=worldBodyHeight/Math.max(.08,imageBodyHeight);
+ let previousWorld=null;
+ const newKeys=frameList.map(frame=>{
+  const landmarks=frame.world||firstLandmarks;
+  const smoothed=previousWorld&&landmarks.map((p,i)=>({x:previousWorld[i].x*.22+p.x*.78,y:previousWorld[i].y*.22+p.y*.78,z:previousWorld[i].z*.22+p.z*.78,visibility:p.visibility}));
+  const points=smoothed||landmarks;previousWorld=points;
+  const point=i=>worldPoint(points,i);
+  const hipL=point(23),hipR=point(24),shoulderL=point(11),shoulderR=point(12);
+  const pelvis=midpoint(hipL,hipR),shoulders=midpoint(shoulderL,shoulderR);
+  const head=midpoint(point(7),point(8))||point(0);
+  const waist=pelvis&&shoulders?pelvis.clone().lerp(shoulders,.42):pelvis;
+  const neckBase=shoulders&&head?shoulders.clone().lerp(head,.58):shoulders;
+  const directions={};
+  const direction=(id,a,b)=>{if(a&&b)directions[id]=b.clone().sub(a)};
+  direction('hip',pelvis,waist);direction('abdomen',waist,shoulders);direction('chest',shoulders,neckBase);direction('neck',neckBase,head);
+  for(const [side,shoulderIndex,elbowIndex,wristIndex,hipIndex,kneeIndex,ankleIndex,footIndex,pinkyIndex] of [['l',11,13,15,23,25,27,31,17],['r',12,14,16,24,26,28,32,18]]){
+   const shoulder=point(shoulderIndex),elbow=point(elbowIndex),wrist=point(wristIndex),hip=point(hipIndex),knee=point(kneeIndex),ankle=point(ankleIndex);
+   direction(side+'Collar',shoulders,shoulder);direction(side+'Shldr',shoulder,elbow);direction(side+'ForeArm',elbow,wrist);
+   direction(side+'Hand',wrist,midpoint(point(side==='l'?19:20),point(pinkyIndex)));
+   direction(side+'Thigh',hip,knee);direction(side+'Shin',knee,ankle);direction(side+'Foot',ankle,point(footIndex));
+  }
+  direction('head',midpoint(point(7),point(8)),point(0));
+  const data=snapshotZero(),worldDeltas={};
+  for(const d of defs)worldDeltas[d[0]]=new THREE.Quaternion();
+  for(const d of defs){
+   const id=d[0],dir=directions[id],bone=actor.rig[id],rest=restDirection[id];
+   if(!dir||!rest||dir.lengthSq()<1e-7)continue;
+   const orientDelta=new THREE.Quaternion().setFromUnitVectors(rest,dir.normalize());
+   const desiredWorld=orientDelta.clone().multiply(worldQuaternion[id]);
+   const parentDelta=new THREE.Quaternion();
+   for(let ancestor=bone.parent;ancestor&&ancestor!==actor.avatar;ancestor=ancestor.parent){
+    const mapped=defs.find(item=>actor.rig[item[0]]===ancestor);
+    if(mapped){parentDelta.copy(worldDeltas[mapped[0]]);break}
+   }
+   const desiredParent=parentDelta.multiply(parentQuaternion[id]);
+   const desiredLocal=desiredParent.invert().multiply(desiredWorld);
+   const localDelta=actor.map[id].baseQuat.clone().invert().multiply(desiredLocal);
+   const euler=new THREE.Euler().setFromQuaternion(localDelta,'XYZ');
+   data[id].rot=[euler.x,euler.y,euler.z].map(THREE.MathUtils.radToDeg);
+   worldDeltas[id]=desiredWorld.multiply(worldQuaternion[id].clone().invert());
+  }
+  if(capture.rootMotion&&firstHipImage&&frame.image){
+   const imageHip=midpoint(frame.image[23],frame.image[24]);
+   if(imageHip){const sceneDelta=new THREE.Vector3((capture.mirror?1:-1)*(imageHip.x-firstHipImage.x)*motionScale,-(imageHip.y-firstHipImage.y)*motionScale,0);
+    sceneDelta.clampLength(0,1.5);const modelRoot=actor.rig.hip.parent;modelRoot.updateWorldMatrix(true,false);
+    sceneDelta.applyQuaternion(modelRoot.getWorldQuaternion(new THREE.Quaternion()).invert());data.hip.pos=sceneDelta.toArray();}
+  }
+  return{t:Math.max(0,Math.min(clipDuration,frame.t)),data};
+ });
+ duration=clipDuration;keys=newKeys.sort((a,b)=>a.t-b.t);fps=Number(capture.sampleRate)||Number(document.querySelector('#fps').value)||24;
+ document.querySelector('#animMode').click();renderKeys();setTime(0);storeActiveClip();markDirty();
+ toast(appLanguage==='en'?'Captured motion applied to the timeline':appLanguage==='es'?'Movimiento capturado aplicado a la linea de tiempo':'Movimento capturado aplicado a timeline');
+}
+window.addEventListener('posecraft:motion-captured',event=>{try{applyCapturedMotion(event.detail);event.preventDefault()}catch(error){console.error('Could not retarget captured video motion',error);toast(appLanguage==='en'?'Could not apply the captured motion':appLanguage==='es'?'No se pudo aplicar el movimiento capturado':'Nao foi possivel aplicar o movimento capturado')}});
+import('./motion-capture.js').then(module=>module.installMotionCapture()).catch(error=>{console.error('Motion capture UI failed to load',error)});
 </script></body></html>
 
