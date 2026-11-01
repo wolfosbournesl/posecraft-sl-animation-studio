@@ -16,7 +16,7 @@ Editor visual para criar poses e anima??es humanoides, organizar quadros-chave e
 
 ## Usar no navegador
 
-A vers?o p?blica ? publicada pelo GitHub Pages a partir da pasta `dist/`. Abra o endere?o do Pages e use o editor diretamente no navegador. A aplica??o salva rascunhos no armazenamento local do navegador.
+A versão pública ? publicada pelo GitHub Pages a partir da pasta `dist/`. Abra o endere?o do Pages e use o editor diretamente no navegador. A aplica??o salva rascunhos no armazenamento local do navegador.
 
 ## Executar localmente
 
@@ -33,10 +33,10 @@ Os avatares FBX v?m do pacote Universal Base Characters, de Quaternius, distribu
 
 ## Compatibilidade
 
-A exporta??o gera arquivos para avalia??o no viewer. O carregamento no editor n?o garante compatibilidade final de cada anima??o no Second Life; confira o resultado no viewer antes de usar ou enviar. O formato `.anim` ? o formato bin?rio interno do viewer.
+A exportação gera arquivos para avalia??o no viewer. O carregamento no editor n?o garante compatibilidade final de cada anima??o no Second Life; confira o resultado no viewer antes de usar ou enviar. O formato `.anim` ? o formato bin?rio interno do viewer.
 
 Para importar MMD, obtenha um arquivo `.vmd` de uma fonte que permita seu uso e selecione-o localmente. O editor n?o busca nem baixa anima??es a partir de sites.
 
-## Publica??o
+## Publicação
 
 Cada push para `main` publica automaticamente `dist/` no GitHub Pages usando GitHub Actions. O workflow est? em `.github/workflows/pages.yml`.
